@@ -98,6 +98,9 @@ verify_failed = VERIFY_FAILED
 QUEST_BOARD: Final[str] = "Quest Board"
 quest_board = QUEST_BOARD
 
+SIGNED_IN: Final[str] = "Signed in as {login}"
+signed_in = SIGNED_IN
+
 ASK_WORK: Final[str] = "What do you want to work on?"
 ask_work = ASK_WORK
 
@@ -106,3 +109,22 @@ ask_sage = ASK_SAGE
 
 ASK_UNASSIGNED: Final[str] = "Only unassigned quests?"
 ask_unassigned = ASK_UNASSIGNED
+
+ASK_DIFFICULTY: Final[str] = "Difficulty"
+ask_difficulty = ASK_DIFFICULTY
+
+ASK_SELECT_ISSUE: Final[str] = "Select quest"
+ask_select_issue = ASK_SELECT_ISSUE
+
+ZERO_RESULTS: Final[str] = "No quests found matching your criteria. Try broader keywords or another Sage."
+zero_results = ZERO_RESULTS
+
+REPO_ARCHIVED: Final[str] = "This repository is archived. Pick another quest."
+repo_archived = REPO_ARCHIVED
+
+ANALYSIS_NOT_WIRED: Final[str] = "analysis not wired yet"
+analysis_not_wired = ANALYSIS_NOT_WIRED
+
+MISSING_TOKEN: Final[str] = "GITHUB_TOKEN is not set."
+missing_token = MISSING_TOKEN
+

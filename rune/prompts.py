@@ -24,12 +24,13 @@ def _check_tty() -> None:
         raise RuntimeError("Interactive prompt requires a TTY stdin.")
 
 
-def ask_text(message: str) -> str | None:
+def ask_text(message: str, default: str = "") -> str | None:
     """Prompt for text input. Return None on Ctrl-C / abort."""
     _check_tty()
     try:
         return questionary.text(
             message,
+            default=default,
             qmark="ᚱ",
             style=PROMPT_STYLE,
         ).ask()

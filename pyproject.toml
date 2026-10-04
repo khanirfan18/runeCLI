@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rune"
+version = "0.1.0"
+description = "A terminal-first developer tool that turns a real GitHub issue into a grounded coding quest."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "google-genai==2.28.0",
+    "httpx==0.28.1",
+    "pydantic==2.13.5",
+    "questionary==2.1.1",
+    "rich==15.0.0",
+    "typer==0.27.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.1.1",
+]
+
+[project.scripts]
+rune = "rune.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["rune*"]

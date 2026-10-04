@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+
+.venv/
+__pycache__/
+stage0_results.json
+*.egg-info/

@@ -419,3 +419,24 @@ class GitHubClient:
             allow_forking=allow_forking,
             push=push,
         )
+
+    def list_pull_requests(
+        self,
+        base_repo: str,
+        head_owner: str,
+        head_branch: str,
+        max_pages: int = 2,
+    ) -> list[dict[str, Any]]:
+        """Fetch PRs for a repository filtered by head=<head_owner>:<head_branch>.
+
+        Follows response.links['next'] up to max_pages (default 2).
+        """
+        endpoint = f"/repos/{base_repo}/pulls"
+        params = {
+            "state": "all",
+            "per_page": 100,
+            "sort": "created",
+            "direction": "desc",
+            "head": f"{head_owner}:{head_branch}",
+        }
+        return self.paginate(endpoint, params=params, max_pages=max_pages)

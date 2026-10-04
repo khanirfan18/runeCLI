@@ -67,6 +67,9 @@ gemini_failed = GEMINI_FAILED
 ABANDONED: Final[str] = "The ritual is abandoned."
 abandoned = ABANDONED
 
+SETUP_ABORTED: Final[str] = "The ritual is abandoned."
+setup_aborted = SETUP_ABORTED
+
 COMPLETED: Final[str] = "Congratulations! Quest complete!"
 completed = COMPLETED
 
@@ -127,4 +130,14 @@ analysis_not_wired = ANALYSIS_NOT_WIRED
 
 MISSING_TOKEN: Final[str] = "GITHUB_TOKEN is not set."
 missing_token = MISSING_TOKEN
+
+SETUP_NOT_WIRED: Final[str] = "setup not wired yet"
+setup_not_wired = SETUP_NOT_WIRED
+
+ACTIVE_EXISTS: Final[str] = "A quest is already active: {title} ({id}). Finish or abandon it first."
+active_exists = ACTIVE_EXISTS
+
+CHOOSE_QUEST: Final[str] = "Choose a quest"
+choose_quest = CHOOSE_QUEST
+
 

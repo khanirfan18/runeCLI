@@ -4,8 +4,10 @@ import os
 import sys
 from typing import Any
 
-from rune import theme
+from rune import store, theme
 from rune.difficulty import DIFFICULTY_LOOKUP, Difficulty
+from rune.editor import detect_editors, handle_active_quest
+from rune.lifecycle import process_active_quest
 from rune.github import (
     GitHubClient,
     build_search_query,
@@ -18,7 +20,9 @@ from rune.analysis import clone_repo, extract_evidence
 from rune.gemma import generate_quests
 from rune.models import E0, GemmaOutput, IssueRef, RepoMeta
 from rune.prompts import ask_select, ask_text
+from rune.quest import accept_quest, choose_quest_option, show_offered_quests
 from rune.ui import box, get_console, truncate, working
+from rune.workspace import run_setup_flow
 
 
 def run_analysis(repo_meta: RepoMeta, e0: E0) -> list[Any]:
@@ -55,7 +59,10 @@ def print_e0_summary(e0: E0, repo_meta: RepoMeta) -> None:
     console.print(theme.analysis_not_wired)
 
 
-def run_flow(client: GitHubClient | None = None) -> None:
+def run_flow(
+    client: GitHubClient | None = None,
+    reopen_confirm: Any = None,
+) -> None:
     """Execute the core interactive Rune Quest Board flow."""
     # When invoked without a TTY stdin in automated runners, preserve placeholder
     if client is None and not sys.stdin.isatty():
@@ -70,6 +77,27 @@ def run_flow(client: GitHubClient | None = None) -> None:
     with working("Authenticating..."):
         login = client.get_authenticated_login()
     console.print(theme.signed_in.format(login=login))
+
+    # Early IDE check: if neither editor is found, show theme.ide_required and exit non-zero
+    editors = detect_editors()
+    if not editors:
+        console.print(theme.ide_required)
+        sys.exit(1)
+
+    # Process active quest: handle expiry, PR matching, completion, XP
+    result = process_active_quest(github=client)
+    if result.quest and result.quest.status == "ACTIVE":
+        active_q = result.quest
+        console.print(
+            theme.active_exists.format(
+                title=active_q.spec.title, id=active_q.display_id
+            )
+        )
+        if reopen_confirm is not None:
+            handle_active_quest(active_q, editors, confirm_prompt=reopen_confirm)
+        else:
+            handle_active_quest(active_q, editors)
+        return
 
     # 2. What do you want to work on? (keywords >= 3 chars, max 8)
     keywords: list[str] = []
@@ -158,5 +186,22 @@ def run_flow(client: GitHubClient | None = None) -> None:
         console.print(f"{theme.insufficient} {gemma_output.reason}")
         return
 
-    # 14. Print E0 summary box and plain line
-    print_e0_summary(e0, repo_meta)
+    # 14. Present quests and prompt choice
+    if gemma_output and gemma_output.quests:
+        show_offered_quests(gemma_output.quests, difficulty, evidence)
+        chosen_quest = choose_quest_option(gemma_output.quests)
+        if chosen_quest is None:
+            return
+
+        # 15. Accept quest and write durable record
+        quest = accept_quest(
+            chosen_quest,
+            e0=e0,
+            repo_meta=repo_meta,
+            difficulty=difficulty,
+            evidence=evidence,
+        )
+        if quest is not None:
+            run_setup_flow(quest, login)
+    else:
+        print_e0_summary(e0, repo_meta)

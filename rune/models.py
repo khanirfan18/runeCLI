@@ -3,6 +3,7 @@
 Contains IssueRef, RepoMeta, E0, and Gemma AI output models.
 """
 
+from datetime import datetime, timezone
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
@@ -152,3 +153,89 @@ class GemmaOutput(BaseModel):
             self.check_evidence_ids(info.context["allowed_evidence_ids"])
 
         return self
+
+
+class QuestIssue(BaseModel):
+    """Target issue details stored in the durable quest record."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    number: int
+    title: str
+    url: str
+
+
+class QuestPR(BaseModel):
+    """Pull request reference for completion verification."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    number: int
+    url: str
+    state: str
+    merged: bool = False
+
+
+class QuestSnippet(BaseModel):
+    """Stored cited evidence snippet in the durable quest record."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    path: str
+    start_line: int
+    end_line: int
+    snippet: str
+
+
+QuestStatus = Literal["SETUP_PENDING", "SETUP_FAILED", "ACTIVE", "EXPIRED", "COMPLETED"]
+
+
+class Quest(BaseModel):
+    """Durable quest record persisted as JSON under RUNE_HOME/quests/<id>.json."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    display_id: str
+    status: QuestStatus = "SETUP_PENDING"
+    created_at: datetime
+    claimed_at: datetime | None = None
+    expires_at: datetime | None = None
+    completed_at: datetime | None = None
+    expired_at: datetime | None = None
+    failure_reason: str | None = None
+
+    issue: QuestIssue
+    base_repo: str
+    base_repo_url: str
+    base_branch: str
+    route: Literal["direct", "fork"]
+    head_repo: str | None = None
+    head_owner: str | None = None
+    head_branch: str | None = None
+
+    difficulty: str
+    xp: int
+    duration_seconds: int
+    xp_awarded: bool = False
+    workspace_path: str | None = None
+    pr: QuestPR | None = None
+
+    spec: QuestFraming
+    snippets: list[QuestSnippet] = Field(default_factory=list)
+
+    @field_validator("created_at", "claimed_at", "expires_at", "completed_at", "expired_at", mode="before")
+    @classmethod
+    def ensure_utc(cls, v: Any) -> Any:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            dt = datetime.fromisoformat(v)
+            if dt.tzinfo is None:
+                return dt.replace(tzinfo=timezone.utc)
+            return dt
+        if isinstance(v, datetime) and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
+

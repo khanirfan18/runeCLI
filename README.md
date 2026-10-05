@@ -6,22 +6,17 @@ A terminal-first developer tool that turns real GitHub issues into grounded, tim
 
 ## Installation
 
-RuneCLI requires Python 3.11+.
+RuneCLI requires Python 3.11 or newer. Install the published package:
 
 ```bash
-# Clone the repository
-git clone https://github.com/khanirfan18/RuneCLI.git
-cd RuneCLI
-
-# Editable install
-pip install -e .
-
-# Or install with development dependencies
-pip install -e ".[dev]"
-
-# Or install globally using pipx
-pipx install .
+python -m pip install runecli
+rune --help
 ```
+
+`pipx install runecli` is also a good option for an isolated command-line
+installation. On Linux distributions that protect the system Python, use
+`pipx` or a user-managed Python installation instead of
+`--break-system-packages`.
 
 ---
 
@@ -36,6 +31,13 @@ pipx install .
 | `RUNE_DURATION_OVERRIDE_SECONDS` | No | Overrides quest timer duration in seconds for testing and demos. Modifies duration only, never XP. |
 | `RUNE_HOME` | No | Custom root directory for local quest records, workspaces, player cache, and analysis clone caches (defaults to `~/.rune`). |
 | `SENTRY_DSN` | No | Optional Sentry DSN for error telemetry. When set, only redacted tags are sent; tokens, issue content, and file paths are never transmitted. |
+
+On the first interactive `rune` launch, Rune asks for your GitHub token and
+Gemini API key using hidden password prompts. They are stored locally in
+`~/.rune/config.json` (or under `RUNE_HOME`) with owner-only permissions and
+loaded automatically on later launches. Environment variables, when provided,
+take precedence over saved values. Never commit tokens or put them in a
+repository file.
 
 ---
 
@@ -85,17 +87,25 @@ Rune guides; the player controls Git. Rune never automatically pushes, commits, 
 
 ---
 
-## Demo Walkthrough
+## Basic usage
 
-1. Set your environment variables:
-   ```bash
-   export GITHUB_TOKEN="ghp_yourTokenHere"
-   export GEMINI_API_KEY="AIzaSyYourKeyHere"
-   ```
-2. Launch Rune:
+```bash
+rune
+rune status
+rune refresh
+```
+
+The first command opens the interactive Quest Board. Rune creates local quest
+records and analysis caches under `~/.rune`.
+
+## Demo walkthrough
+
+1. Start Rune:
    ```bash
    rune
    ```
+2. On the first run, paste your credentials when prompted. You can also set
+   `GITHUB_TOKEN` and `GEMINI_API_KEY` before launching.
 3. Search for issues on the Quest Board:
    - Keywords: `parser crash`
    - Sage: `pallets` (or leave blank)
@@ -118,6 +128,29 @@ Rune guides; the player controls Git. Rune never automatically pushes, commits, 
     rune refresh
     ```
 12. See your quest marked `COMPLETED` and watch your RuneScape level progress!
+
+## Development
+
+To work on RuneCLI from source:
+
+```bash
+git clone https://github.com/khanirfan18/runecli.git
+cd runecli
+python -m pip install -e ".[dev]"
+python -m pytest -q
+```
+
+Build release artifacts locally with:
+
+```bash
+python -m pip install build
+python -m build
+```
+
+## Reporting issues
+
+Report bugs and feature ideas at
+https://github.com/khanirfan18/runecli/issues.
 
 ---
 

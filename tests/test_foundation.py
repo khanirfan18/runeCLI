@@ -3,6 +3,8 @@
 import io
 import json
 import os
+import subprocess
+import sys
 from datetime import timezone
 from pathlib import Path
 from unittest.mock import patch
@@ -163,7 +165,7 @@ def test_typer_app_cli_runner(tmp_path, monkeypatch):
     # Bare invocation exits 0 and prints banner and placeholder
     bare_result = runner.invoke(app, [])
     assert bare_result.exit_code == 0
-    assert theme.BANNER in bare_result.output
+    assert theme.PLAIN_BANNER in bare_result.output
     assert "flow not wired yet" in bare_result.output
 
     # Subcommand status exits 0
@@ -175,6 +177,19 @@ def test_typer_app_cli_runner(tmp_path, monkeypatch):
     refresh_result = runner.invoke(app, ["refresh"])
     assert refresh_result.exit_code == 0
     assert "not wired yet" in refresh_result.output
+
+
+def test_module_execution_supports_help():
+    result = subprocess.run(
+        [sys.executable, "-m", "rune", "--help"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0
+    assert "Usage:" in result.stdout
+    assert "status" in result.stdout
+    assert "refresh" in result.stdout
 
 
 def test_external_text_renders_literally():
@@ -212,6 +227,33 @@ def test_store_directory_structure(tmp_path, monkeypatch):
     assert cfg == {"version": 1}
 
 
+def test_credentials_are_saved_and_loaded_from_local_config(tmp_path, monkeypatch):
+    monkeypatch.setenv("RUNE_HOME", str(tmp_path / ".rune"))
+    store.ensure_dirs()
+    store.save_credentials("ghp_local", "AIza_local")
+
+    assert store.read_credentials() == {
+        "github_token": "ghp_local",
+        "gemini_api_key": "AIza_local",
+    }
+    assert oct(store.config_path().stat().st_mode & 0o777) == "0o600"
+
+
+def test_saved_credentials_fill_missing_environment_values(tmp_path, monkeypatch):
+    from rune.credentials import load_saved_credentials
+
+    monkeypatch.setenv("RUNE_HOME", str(tmp_path / ".rune"))
+    store.ensure_dirs()
+    store.save_credentials("ghp_saved", "AIza_saved")
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+
+    load_saved_credentials()
+
+    assert os.environ["GITHUB_TOKEN"] == "ghp_saved"
+    assert os.environ["GEMINI_API_KEY"] == "AIza_saved"
+
+
 def test_prompts_require_tty(monkeypatch):
     from rune import prompts
     monkeypatch.setattr("sys.stdin.isatty", lambda: False)
@@ -221,3 +263,74 @@ def test_prompts_require_tty(monkeypatch):
 
     with pytest.raises(RuntimeError, match="Interactive prompt requires a TTY stdin."):
         prompts.ask_select("Select difficulty", [("Novice", "EASY")])
+
+
+def test_no_output_line_exceeds_eighty_columns():
+    # 1. Banner art lines
+    for line in theme.BANNER_ART.splitlines():
+        assert len(line) <= 80, f"Banner line exceeds 80 cols ({len(line)}): {line}"
+
+    # 2. Panel with very long unbroken words and lines
+    buf = io.StringIO()
+    console = Console(file=buf, width=80, markup=False, emoji=False, highlight=False)
+    long_body = "This is a very long line inside a panel " * 5 + "\n" + "A" * 150
+    panel = ui.box(long_body, title="QUEST BOARD")
+    console.print(panel)
+    for line in buf.getvalue().splitlines():
+        assert len(line) <= 80, f"Panel line exceeds 80 cols ({len(line)}): {line}"
+
+    # 3. Status table lines
+    table = ui.format_status_table(level=5, xp=1200)
+    for line in table.splitlines():
+        assert len(line) <= 80, f"Status table line exceeds 80 cols ({len(line)}): {line}"
+
+
+def test_banner_absent_when_no_color_or_not_tty(monkeypatch):
+    # 1. Absent when stdout is not a TTY
+    monkeypatch.setattr("sys.stdout.isatty", lambda: False)
+    monkeypatch.delenv("NO_COLOR", raising=False)
+
+    buf = io.StringIO()
+    console = Console(file=buf, width=80, markup=False, emoji=False, highlight=False)
+    console.print(theme.BANNER)
+    output = buf.getvalue()
+    assert theme.BANNER_ART.splitlines()[0] not in output
+    assert theme.PLAIN_BANNER in output
+
+    # 2. Absent when NO_COLOR is set (even if isatty is True)
+    monkeypatch.setattr("sys.stdout.isatty", lambda: True)
+    monkeypatch.setenv("NO_COLOR", "1")
+
+    buf2 = io.StringIO()
+    console2 = Console(file=buf2, width=80, markup=False, emoji=False, highlight=False)
+    console2.print(theme.BANNER)
+    output2 = buf2.getvalue()
+    assert theme.BANNER_ART.splitlines()[0] not in output2
+    assert theme.PLAIN_BANNER in output2
+
+    # 3. Present when isatty is True and NO_COLOR is unset
+    monkeypatch.setattr("sys.stdout.isatty", lambda: True)
+    monkeypatch.delenv("NO_COLOR", raising=False)
+
+    buf3 = io.StringIO()
+    console3 = Console(file=buf3, width=80, markup=False, emoji=False, highlight=False)
+    console3.print(theme.BANNER)
+    output3 = buf3.getvalue()
+    assert theme.BANNER_ART.splitlines()[0] in output3
+    assert "Turn a real issue into a quest." in output3
+
+
+def test_box_uses_ascii_borders_and_bracketed_titles():
+    buf = io.StringIO()
+    console = Console(file=buf, width=80, markup=False, emoji=False, highlight=False)
+    panel = ui.box("Body content", title="THE ORACLE")
+    console.print(panel)
+    output = buf.getvalue()
+
+    # ASCII borders
+    assert "+" in output
+    assert "-" in output
+    assert "|" in output
+
+    # Bracketed title
+    assert "[ THE ORACLE ]" in output

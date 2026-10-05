@@ -38,6 +38,19 @@ def ask_text(message: str, default: str = "") -> str | None:
         return None
 
 
+def ask_password(message: str) -> str | None:
+    """Prompt for a secret without echoing it to the terminal."""
+    _check_tty()
+    try:
+        return questionary.password(
+            message,
+            qmark="ᚱ",
+            style=PROMPT_STYLE,
+        ).ask()
+    except KeyboardInterrupt:
+        return None
+
+
 def ask_select(message: str, choices: Sequence[tuple[str, Any]]) -> Any | None:
     """Prompt to select from (label, value) choices. Return None on Ctrl-C / abort."""
     _check_tty()
@@ -95,4 +108,3 @@ def prompt_reopen_workspace() -> bool:
     _check_tty()
     res = ask_select("Reopen workspace in IDE?", [("Yes", True), ("No", False)])
     return bool(res)
-

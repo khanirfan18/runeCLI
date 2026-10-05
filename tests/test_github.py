@@ -647,6 +647,21 @@ def test_token_never_appears_in_errors_logs_or_repr(monkeypatch):
     assert "***" in err_str
 
 
+def test_token_is_sent_in_authorization_header():
+    seen_headers: dict[str, str] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_headers.update(dict(request.headers))
+        return httpx.Response(200, json={"login": "octocat"})
+
+    client = GitHubClient(
+        token="ghp_test_token",
+        transport=httpx.MockTransport(handler),
+    )
+    assert client.get_authenticated_login() == "octocat"
+    assert seen_headers["authorization"] == "Bearer ghp_test_token"
+
+
 # ---------------------------------------------------------------------------
 # Pagination helper tests
 # ---------------------------------------------------------------------------

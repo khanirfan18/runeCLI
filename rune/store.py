@@ -54,6 +54,36 @@ def ensure_dirs() -> None:
         atomic_write_json(cfg, {"version": 1})
 
 
+def read_credentials() -> dict[str, str]:
+    """Return locally saved API credentials without exposing them to callers."""
+    data = read_json(config_path()) or {}
+    credentials = data.get("credentials", {})
+    if not isinstance(credentials, dict):
+        raise StoreError("Invalid credentials configuration.")
+    return {
+        key: str(value)
+        for key, value in credentials.items()
+        if key in {"github_token", "gemini_api_key"} and isinstance(value, str) and value
+    }
+
+
+def save_credentials(github_token: str, gemini_api_key: str) -> None:
+    """Save API credentials in the local Rune config while preserving other settings."""
+    ensure_dirs()
+    data = read_json(config_path()) or {"version": 1}
+    if not isinstance(data, dict):
+        raise StoreError("Invalid Rune configuration.")
+    data["credentials"] = {
+        "github_token": github_token,
+        "gemini_api_key": gemini_api_key,
+    }
+    atomic_write_json(config_path(), data)
+    try:
+        config_path().chmod(0o600)
+    except OSError as exc:
+        raise StoreError("Unable to secure the local Rune configuration.") from exc
+
+
 def atomic_write_json(path: Path | str, data: Any) -> None:
     """Atomically write JSON data to a target path via a temporary file in the same directory."""
     target_path = Path(path).resolve()
@@ -149,4 +179,3 @@ def list_quests() -> list[Any]:
 def get_quests_by_status(status: str) -> list[Any]:
     """Return all stored quests matching a given status."""
     return [q for q in list_quests() if q.status == status]
-

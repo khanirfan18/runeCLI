@@ -4,6 +4,7 @@ import os
 import typer
 
 from rune import theme
+from rune.credentials import load_saved_credentials
 from rune.flow import run_flow
 from rune.lifecycle import render_refresh_view, render_status_view
 from rune.recovery import recover_stale_setups
@@ -23,6 +24,7 @@ def main(ctx: typer.Context) -> None:
     """RuneCLI entry callback."""
     started_at = init_run()
     ensure_dirs()
+    load_saved_credentials()
     recover_stale_setups(started_at)
     if ctx.invoked_subcommand is None:
         console = get_console()

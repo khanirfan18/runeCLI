@@ -2,9 +2,24 @@
 .env.*
 !.env.example
 
+# Python environments, caches, and build output
 .venv/
+fresh_venv/
 __pycache__/
-stage0_results.json
-*.egg-info/
+*.py[cod]
+*$py.class
 .pytest_cache/
-__pycache__/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+stage0_results.json
+
+# IDE and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "runecli"
-version = "0.1.1"
+version = "0.1.2"
 description = "A terminal-first developer tool that turns a real GitHub issue into a grounded coding quest."
 readme = "README.md"
 license = { file = "LICENSE" }

@@ -17,6 +17,7 @@ from rune.github import (
     validate_sage,
 )
 from rune.analysis import clone_repo, extract_evidence
+from rune.credentials import ensure_credentials
 from rune.gemma import generate_quests
 from rune.models import E0, GemmaOutput, IssueRef, RepoMeta
 from rune.prompts import ask_select, ask_text
@@ -71,6 +72,8 @@ def run_flow(
         return
 
     console = get_console()
+    if client is None and not ensure_credentials():
+        return
     client = client or GitHubClient()
 
     # 1. Sign in

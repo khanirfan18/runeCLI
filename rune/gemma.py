@@ -6,6 +6,7 @@ Enforces the locked contract, delimited evidence E0..E8, and exact repair logic.
 
 import json
 import os
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -112,7 +113,7 @@ def default_generate(
     content: str,
     client: genai.Client | None = None,
 ) -> str:
-    """Generate content via the pinned google-genai SDK."""
+    """Generate content via the pinned google-genai SDK with 503 retry and model fallback."""
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         raise GemmaError(redact("GEMINI_API_KEY is not set."))
@@ -134,19 +135,31 @@ def default_generate(
 
     config = types.GenerateContentConfig(**config_kwargs)
 
-    try:
-        response = client.models.generate_content(
-            model=model,
-            contents=contents,
-            config=config,
-        )
-        if not response or not response.text:
-            raise GemmaError(redact(f"{theme.gemini_failed} Empty response from model."))
-        return response.text
-    except Exception as exc:
-        if isinstance(exc, GemmaError):
-            raise
-        raise GemmaError(redact(f"{theme.gemini_failed} {exc}")) from exc
+    # Try primary model, then fallback model if 503/overloaded
+    models_to_try = [model, "gemma-4-26b-a4b-it"]
+
+    last_exc = None
+    for curr_model in models_to_try:
+        # Retry loop for 503 / temporary server errors (up to 3 attempts per model)
+        for attempt in range(3):
+            try:
+                response = client.models.generate_content(
+                    model=curr_model,
+                    contents=contents,
+                    config=config,
+                )
+                if response and response.text:
+                    return response.text
+            except Exception as exc:
+                last_exc = exc
+                err_str = str(exc)
+                # Check for 503 or overload indicators
+                if "503" in err_str or "Service Unavailable" in err_str or "overloaded" in err_str.lower():
+                    time.sleep(1.0 * (attempt + 1))
+                    continue
+                break  # Non-503 error, break inner loop to try fallback model
+
+    raise GemmaError(redact(f"{theme.gemini_failed} All generation attempts failed: {last_exc}"))
 
 
 def generate_quests(

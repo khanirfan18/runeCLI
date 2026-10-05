@@ -24,8 +24,8 @@ installation. On Linux distributions that protect the system Python, use
 
 | Variable | Required | Description |
 |---|---|---|
-| `GITHUB_TOKEN` | **Yes** | Personal access token (classic or fine-grained with `repo` scope) used to interact with the GitHub API. Never logged, printed, or persisted. |
-| `GEMINI_API_KEY` | **Yes** | Google Gemini API key used exclusively with Google's open-weights Gemma 4 model (`gemma-4-31b-it`). |
+| `GITHUB_TOKEN` | **Yes** | Personal access token (classic or fine-grained with `repo` scope) used to interact with the GitHub API. Never logged or printed; interactive setup stores it only in Rune's owner-only local config. |
+| `GEMINI_API_KEY` | **Yes** | Google Gemini API key used exclusively with Google's open-weights Gemma 4 model (`gemma-4-31b-it`). Interactive setup stores it only in Rune's owner-only local config. |
 | `RUNE_SEARCH_USER` | No | Pre-fills the Sage prompt on the Quest Board (the GitHub user or org whose issues to search; **not** your personal username). |
 | `GEMMA_MODEL` | No | Gemma model identifier (defaults to `gemma-4-31b-it`; also supports `gemma-4-26b-a4b-it`). Must start with `gemma-`. |
 | `RUNE_DURATION_OVERRIDE_SECONDS` | No | Overrides quest timer duration in seconds for testing and demos. Modifies duration only, never XP. |

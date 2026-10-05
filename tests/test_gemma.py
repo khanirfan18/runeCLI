@@ -103,6 +103,29 @@ def test_valid_response_parses_with_one_call(sample_e0, sample_evidence, valid_r
     assert output.quests[0].evidence_ids == ["E0", "E1"]
 
 
+def test_success_response_with_explanatory_reason_does_not_trigger_repair(
+    sample_e0, sample_evidence, valid_response_json
+):
+    response = json.loads(valid_response_json)
+    response["reason"] = "The model added an unnecessary explanation."
+    calls = []
+
+    def fake_generate(model: str, contract: str, content: str) -> str:
+        calls.append((model, contract, content))
+        return json.dumps(response)
+
+    output = generate_quests(
+        user_input="fix the crash when passing invalid flags",
+        e0=sample_e0,
+        evidence=sample_evidence,
+        generate=fake_generate,
+    )
+
+    assert len(calls) == 1
+    assert output.status == "OK"
+    assert output.reason is None
+
+
 # ---------------------------------------------------------------------------
 # 2. Repair mechanism (invalid then valid = 2 calls; invalid twice = GemmaError)
 # ---------------------------------------------------------------------------
@@ -153,6 +176,26 @@ def test_repair_invalid_twice_raises_gemma_error(sample_e0, sample_evidence):
     assert "Validation failed after repair" in str(exc_info.value) or "oracle is unreachable" in str(exc_info.value)
 
 
+def test_repair_api_failure_is_reported_as_generation_error(sample_e0, sample_evidence):
+    calls = []
+
+    def fake_generate(model: str, contract: str, content: str) -> str:
+        calls.append(content)
+        if len(calls) == 1:
+            return "invalid json output"
+        raise RuntimeError("500 INTERNAL: temporary upstream failure")
+
+    with pytest.raises(GemmaError, match="oracle is unreachable"):
+        generate_quests(
+            user_input="fix crash",
+            e0=sample_e0,
+            evidence=sample_evidence,
+            generate=fake_generate,
+        )
+
+    assert len(calls) == 2
+
+
 # ---------------------------------------------------------------------------
 # 3. Pydantic schema validation rules
 # ---------------------------------------------------------------------------
@@ -193,20 +236,28 @@ def test_schema_insufficient_evidence_and_ok_invariants():
             reason="Some reason",
         )
 
-    # OK with reason!=None must be rejected
+    # A harmless explanatory reason on a successful response is normalized away.
+    normalized_ok = GemmaOutput(
+        status="OK",
+        quests=[
+            QuestFraming(
+                title="Quest",
+                summary="Summary",
+                acceptance_criteria=[
+                    AcceptanceCriterion(id="AC1", statement="Stmt", evidence_ids=["E0"])
+                ],
+                evidence_ids=["E0"],
+            )
+        ],
+        reason="An unnecessary explanation from the model",
+    )
+    assert normalized_ok.reason is None
+
+    # Other successful-response invariants remain strict.
     with pytest.raises(ValidationError):
         GemmaOutput(
             status="OK",
-            quests=[
-                QuestFraming(
-                    title="Quest",
-                    summary="Summary",
-                    acceptance_criteria=[
-                        AcceptanceCriterion(id="AC1", statement="Stmt", evidence_ids=["E0"])
-                    ],
-                    evidence_ids=["E0"],
-                )
-            ],
+            quests=[],
             reason="Should be None",
         )
 

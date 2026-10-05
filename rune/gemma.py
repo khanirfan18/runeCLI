@@ -36,7 +36,9 @@ SYSTEM_CONTRACT: str = """1. Use only USER_INPUT and the supplied evidence.
 SCHEMA
 {"status":"OK"|"INSUFFICIENT_EVIDENCE",
  "quests":[{"title":"...","summary":"...","acceptance_criteria":[{"id":"AC1","statement":"...","evidence_ids":["E0"]}],"evidence_ids":["E0"],"unknowns":[]}],
- "reason":null}"""
+ "reason":null}
+For status OK, reason must be null or omitted; any explanatory reason is ignored.
+For status INSUFFICIENT_EVIDENCE, reason must be a non-empty explanation."""
 
 
 class GemmaError(Exception):
@@ -182,7 +184,12 @@ def generate_quests(
     gen_fn = generate if generate is not None else default_generate
 
     # Attempt 1
-    raw_response = gen_fn(model, contract, content)
+    try:
+        raw_response = gen_fn(model, contract, content)
+    except GemmaError:
+        raise
+    except Exception as exc:
+        raise GemmaError(redact(f"{theme.gemini_failed} Generation failed: {exc}")) from exc
     cleaned = strip_markdown_fences(raw_response)
 
     try:

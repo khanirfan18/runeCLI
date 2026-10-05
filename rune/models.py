@@ -137,8 +137,10 @@ class GemmaOutput(BaseModel):
                 raise ValueError(
                     f"Status OK requires between 1 and 3 quests, got {len(self.quests)}"
                 )
+            # Successful responses do not expose a reason to the application.
+            # Models sometimes add a harmless explanation despite the schema.
             if self.reason is not None:
-                raise ValueError("Status OK must have reason=None")
+                self.reason = None
         elif self.status == "INSUFFICIENT_EVIDENCE":
             if len(self.quests) != 0:
                 raise ValueError(
@@ -238,4 +240,3 @@ class Quest(BaseModel):
         if isinstance(v, datetime) and v.tzinfo is None:
             return v.replace(tzinfo=timezone.utc)
         return v
-

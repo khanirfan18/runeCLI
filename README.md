@@ -1,6 +1,7 @@
 # RuneCLI
 
 A terminal-first developer tool that turns real GitHub issues into grounded, timed coding quests with RuneScape-inspired progression.
+<img width="1327" height="746" alt="git" src="https://github.com/user-attachments/assets/e73d530b-d5ff-4464-bf64-18080d9ee4cc" />
 
 ---
 

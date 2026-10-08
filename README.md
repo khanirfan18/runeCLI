@@ -31,7 +31,7 @@ installation. On Linux distributions that protect the system Python, use
 | `GEMMA_MODEL` | No | Gemma model identifier (defaults to `gemma-4-31b-it`; also supports `gemma-4-26b-a4b-it`). Must start with `gemma-`. |
 | `RUNE_DURATION_OVERRIDE_SECONDS` | No | Overrides quest timer duration in seconds for testing and demos. Modifies duration only, never XP. |
 | `RUNE_HOME` | No | Custom root directory for local quest records, workspaces, player cache, and analysis clone caches (defaults to `~/.rune`). |
-| `SENTRY_DSN` | No | Optional Sentry DSN for error telemetry. When set, only redacted tags are sent; tokens, issue content, and file paths are never transmitted. |
+
 
 On the first interactive `rune` launch, Rune asks for your GitHub token and
 Gemini API key using hidden password prompts. They are stored locally in

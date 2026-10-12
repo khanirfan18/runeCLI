@@ -42,6 +42,7 @@ rune = "rune.cli:app"
 Homepage = "https://github.com/khanirfan18/runeCLI"
 Repository = "https://github.com/khanirfan18/runeCLI"
 Issues = "https://github.com/khanirfan18/runeCLI/issues"
+Changelog = "https://github.com/khanirfan18/runeCLI/blob/main/CHANGELOG.md"
 
 [tool.hatch.build]
 ignore-vcs = true

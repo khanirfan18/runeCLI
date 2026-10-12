@@ -1,72 +1,99 @@
 # RuneCLI
 
 A terminal-first developer tool that turns real GitHub issues into grounded, timed coding quests with RuneScape-inspired progression.
-<img width="1327" height="746" alt="git" src="https://github.com/user-attachments/assets/e73d530b-d5ff-4464-bf64-18080d9ee4cc" />
+
+<!-- TODO: demo GIF -->
+<img width="1327" height="746" alt="RuneCLI Walkthrough" src="https://github.com/user-attachments/assets/e73d530b-d5ff-4464-bf64-18080d9ee4cc" />
 
 ---
 
 ## Installation
 
-RuneCLI requires Python 3.11 or newer. Install the published package:
+RuneCLI requires Python 3.11 or newer.
 
 ```bash
-python -m pip install runecli
-rune --help
+pip install runecli
 ```
 
-`pipx install runecli` is also a good option for an isolated command-line
-installation. On Linux distributions that protect the system Python, use
-`pipx` or a user-managed Python installation instead of
-`--break-system-packages`.
+Or install in an isolated environment using [pipx](https://github.com/pypa/pipx):
+
+```bash
+pipx install runecli
+```
 
 ---
 
-## Environment Variables
+## 3-Step Quickstart
 
-| Variable | Required | Description |
-|---|---|---|
-| `GITHUB_TOKEN` | **Yes** | Personal access token (classic or fine-grained with `repo` scope) used to interact with the GitHub API. Never logged or printed; interactive setup stores it only in Rune's owner-only local config. |
-| `GEMINI_API_KEY` | **Yes** | Google Gemini API key used exclusively with Google's open-weights Gemma 4 model (`gemma-4-31b-it`). Interactive setup stores it only in Rune's owner-only local config. |
-| `RUNE_SEARCH_USER` | No | Pre-fills the Sage prompt on the Quest Board (the GitHub user or org whose issues to search; **not** your personal username). |
-| `GEMMA_MODEL` | No | Gemma model identifier (defaults to `gemma-4-31b-it`; also supports `gemma-4-26b-a4b-it`). Must start with `gemma-`. |
-| `RUNE_DURATION_OVERRIDE_SECONDS` | No | Overrides quest timer duration in seconds for testing and demos. Modifies duration only, never XP. |
-| `RUNE_HOME` | No | Custom root directory for local quest records, workspaces, player cache, and analysis clone caches (defaults to `~/.rune`). |
+1. **Login & Configure**:
+   ```bash
+   rune
+   ```
+   On your first launch, Rune prompts for your GitHub token and Gemini API key, storing them in your local configuration.
 
+2. **Pick a Quest**:
+   Filter open issues on the Quest Board by keywords, Sage (repo owner), and difficulty. Review Gemma-formulated acceptance criteria and accept a quest.
 
-On the first interactive `rune` launch, Rune asks for your GitHub token and
-Gemini API key using hidden password prompts. They are stored locally in
-`~/.rune/config.json` (or under `RUNE_HOME`) with owner-only permissions and
-loaded automatically on later launches. Environment variables, when provided,
-take precedence over saved values. Never commit tokens or put them in a
-repository file.
+3. **Finish a PR & Claim XP**:
+   Follow guided Git commands in your IDE terminal, open a GitHub pull request, and run:
+   ```bash
+   rune refresh
+   ```
+   When your PR is merged before the timer expires, the quest completes and Rune awards RuneScape XP!
+
+---
+
+> [!NOTE]
+> **Beta Notice — Credential Security**: Your tokens stay on your machine. Rune stores your `GITHUB_TOKEN` and `GEMINI_API_KEY` in a local file at `~/.rune/config.json` (or under `$RUNE_HOME`) with owner-only permissions (`chmod 0600`). This is a local file on your filesystem, not the OS keychain. Environment variables, when set, always take precedence. Never commit or share this configuration file.
+
+---
+
+[![PyPI version](https://img.shields.io/pypi/v/runecli.svg)](https://pypi.org/project/runecli/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/khanirfan18/runeCLI/blob/main/LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+
+---
+
+## How It Works
+
+- **Deterministic Code Evidence**: When you select an issue, Rune clones a shallow, read-only analysis cache and extracts bounded code evidence (E1–E8) matching the issue discussion.
+- **Grounded Quest Framing**: Rune passes evidence to Google's open-weights Gemma 4 model (`gemma-4-31b-it`) via the Gemini API to formulate grounded quest specifications with concrete acceptance criteria.
+- **Guided Git Flow**: Rune creates an isolated workspace directory at `~/.rune/workspaces/<quest-id>/`, opens your editor (VS Code or Cursor), and prints exact setup commands. Rune only reads Git status to verify setup—you retain full control over branching, commits, and pushes.
+- **XP & Level Progression**: Rune tracks PR status matching your quest branch. Merging before the quest timer expires earns RuneScape XP based on quest difficulty.
+
+---
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](https://github.com/khanirfan18/runeCLI/blob/main/CONTRIBUTING.md) for local development setup, testing instructions, and pull request guidelines.
 
 ---
 
 ## Commands
 
-Rune provides exactly three commands:
+Rune provides three focused commands:
 
 ### `rune`
 Starts the interactive quest cycle:
-1. Verifies GitHub credentials and detects an installed IDE (VS Code `code` or Cursor `cursor`).
-2. Opens the Quest Board to search open issues by keyword, Sage, and assignment status.
-3. Clones a bounded, read-only analysis cache and extracts deterministic code evidence (E1–E8).
-4. Uses Gemma 4 to formulate grounded quest specifications with acceptance criteria.
-5. Creates an empty workspace directory and launches your IDE.
+1. Verifies credentials and detects an installed IDE (VS Code `code` or Cursor `cursor`).
+2. Opens the Quest Board to search open issues.
+3. Clones a bounded, read-only analysis cache and extracts evidence.
+4. Generates grounded quest framings with Gemma 4 (`gemma-4-31b-it`).
+5. Creates an isolated workspace and launches your IDE.
 6. Prints guided Git setup commands and verifies your branch before starting the timer.
 
 ### `rune status`
-Displays the active quest's status, remaining time, acceptance criteria, matched pull request status, and Git finishing instructions.
+Displays the active quest's status, remaining time, acceptance criteria, matched pull request status, and finish instructions.
 
 ### `rune refresh`
-Polls GitHub for pull request activity matching your quest branch. When your PR is merged, transitions the quest to `COMPLETED` and awards RuneScape XP.
+Checks GitHub for pull request activity matching your quest branch. When your PR is merged, transitions the quest to `COMPLETED` and awards RuneScape XP.
 
 ---
 
 ## Quest Board Filters
 
 - **Keywords**: 3 to 8 search terms matching issue titles and bodies.
-- **Sage**: The GitHub username or organization whose repositories to search (e.g. `pallets`, `fastapi`). Leave blank to search across public repositories. *Note: Sage designates the repo owner whose issues you seek to solve, not your own username.*
+- **Sage**: The GitHub username or organization whose repositories to search (e.g. `pallets`, `fastapi`). Leave blank to search across public repositories.
 - **Unassigned**: Choose `Yes` to find unclaimed issues (`is:unassigned`) or `No` to include assigned issues.
 - **Difficulty**:
   - `EASY`: 60 minutes / 100 XP
@@ -76,85 +103,37 @@ Polls GitHub for pull request activity matching your quest branch. When your PR 
 
 ---
 
-## Guided Git Flow
+## Environment Variables
 
-Rune guides; the player controls Git. Rune never automatically pushes, commits, creates branches, or forks on your behalf:
-1. **Empty Workspace**: Rune creates an isolated workspace directory at `~/.rune/workspaces/<quest-id>/` and opens it in your detected editor.
-2. **Setup Instructions**: Rune prints the exact commands to run in your IDE terminal:
-   - **Direct Route** (repositories where you have push permission): Clones the base repo and creates a dedicated quest branch (`rune/<display_id>-<issue_number>-<slug>`).
-   - **Fork Route** (external open-source repositories): Instructs you to fork the repository on GitHub, clone your fork, configure the `upstream` remote, and create the quest branch.
-3. **Read-Only Verification**: Rune inspects `git remote` and `git branch` within the workspace. The quest timer starts only after verification succeeds.
-4. **Finishing Instructions**: Once coding is complete, Rune prints the commands to stage, commit, and push your branch, along with the link to open a standard GitHub pull request.
+| Variable | Required | Description |
+|---|---|---|
+| `GITHUB_TOKEN` | **Yes** | Personal access token (classic or fine-grained with `repo` scope) used to interact with the GitHub API. Never logged or printed. |
+| `GEMINI_API_KEY` | **Yes** | Google Gemini API key used exclusively with Google's open-weights Gemma 4 model (`gemma-4-31b-it`). |
+| `RUNE_SEARCH_USER` | No | Pre-fills the Sage prompt on the Quest Board (the GitHub user or org whose issues to search). |
+| `GEMMA_MODEL` | No | Gemma model identifier (defaults to `gemma-4-31b-it`; also supports `gemma-4-26b-a4b-it`). Must start with `gemma-`. |
+| `RUNE_HOME` | No | Custom root directory for local quest records, workspaces, player cache, and analysis clone caches (defaults to `~/.rune`). |
 
 ---
-
-## Basic usage
-
-```bash
-rune
-rune status
-rune refresh
-```
-
-The first command opens the interactive Quest Board. Rune creates local quest
-records and analysis caches under `~/.rune`.
-
-## Demo walkthrough
-
-1. Start Rune:
-   ```bash
-   rune
-   ```
-2. On the first run, paste your credentials when prompted. You can also set
-   `GITHUB_TOKEN` and `GEMINI_API_KEY` before launching.
-3. Search for issues on the Quest Board:
-   - Keywords: `parser crash`
-   - Sage: `pallets` (or leave blank)
-   - Unassigned: `Yes`
-   - Difficulty: `NORMAL`
-4. Select an issue from the results.
-5. Review Gemma 4's quest framings with cited code evidence, acceptance criteria, and objectives.
-6. Accept a quest. Rune creates `~/.rune/workspaces/<quest-id>/` and opens VS Code or Cursor.
-7. Run the printed setup commands in the IDE terminal and press Enter to verify.
-8. Implement your fix in the IDE and run Rune's finish commands:
-   ```bash
-   git add .
-   git commit -m "fix: resolve CLI parser crash"
-   git push origin rune/<branch-name>
-   ```
-9. Open a Pull Request on GitHub against the base branch.
-10. Check progress with `rune status`.
-11. Merge the pull request on GitHub, then run:
-    ```bash
-    rune refresh
-    ```
-12. See your quest marked `COMPLETED` and watch your RuneScape level progress!
 
 ## Development
 
 To work on RuneCLI from source:
 
 ```bash
-git clone https://github.com/khanirfan18/runecli.git
-cd runecli
+git clone https://github.com/khanirfan18/runeCLI.git
+cd runeCLI
 python -m pip install -e ".[dev]"
 python -m pytest -q
 ```
 
-Build release artifacts locally with:
+---
 
-```bash
-python -m pip install build
-python -m build
-```
+## Reporting Issues
 
-## Reporting issues
-
-Report bugs and feature ideas at
-https://github.com/khanirfan18/runecli/issues.
+Report bugs and feature ideas on GitHub at [https://github.com/khanirfan18/runeCLI/issues](https://github.com/khanirfan18/runeCLI/issues).
 
 ---
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) for details.
+MIT License. See [LICENSE](https://github.com/khanirfan18/runeCLI/blob/main/LICENSE) for details.

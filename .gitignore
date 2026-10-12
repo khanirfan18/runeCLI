@@ -1,9 +1,13 @@
+# Environment and credentials
 .env
 .env.*
 !.env.example
 
 # Python environments, caches, and build output
 .venv/
+venv/
+env/
+ENV/
 fresh_venv/
 __pycache__/
 *.py[cod]
@@ -14,12 +18,21 @@ __pycache__/
 .coverage
 htmlcov/
 *.egg-info/
+*.egg
 dist/
 build/
 stage0_results.json
 
-# IDE and operating-system files
+# IDE, editor, and operating system files
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
 .DS_Store
 Thumbs.db
+
+# AI tooling and scratch files
+.agent/

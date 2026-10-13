@@ -465,6 +465,7 @@ def test_archived_repo_stops_flow_before_analysis_or_gemini(monkeypatch):
 
     monkeypatch.setattr(flow, "ask_text", mock_ask_text)
     monkeypatch.setattr(flow, "ask_select", lambda msg, choices: choices[0][1])
+    monkeypatch.setattr(flow, "detect_editors", lambda: ["code"])
 
     analysis_spy = MagicMock()
     gemini_spy = MagicMock()
@@ -507,6 +508,7 @@ def test_fork_route_allow_forking_false_stops_with_fork_blocked(monkeypatch):
 
     monkeypatch.setattr(flow, "ask_text", mock_ask_text_fork)
     monkeypatch.setattr(flow, "ask_select", lambda msg, choices: choices[0][1])
+    monkeypatch.setattr(flow, "detect_editors", lambda: ["code"])
 
     analysis_spy = MagicMock()
     monkeypatch.setattr(flow, "run_analysis", analysis_spy)

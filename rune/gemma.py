@@ -6,6 +6,8 @@ Enforces the locked contract, delimited evidence E0..E8, and exact repair logic.
 
 import json
 import os
+import re
+import sys
 import time
 from collections.abc import Callable
 from typing import Any
@@ -16,7 +18,7 @@ from google.genai import types
 from rune import theme
 from rune.analysis import EvidenceSnippet
 from rune.models import E0, GemmaOutput
-from rune.ui import redact
+from rune.ui import get_console, redact, update_working
 
 # Constants from stage0_results.json
 DEFAULT_MODEL: str = "gemma-4-31b-it"
@@ -109,13 +111,25 @@ def strip_markdown_fences(text: str) -> str:
     return raw
 
 
+def _extract_status_code(exc: Exception) -> int | None:
+    code = getattr(exc, "code", None) or getattr(exc, "status_code", None)
+    if isinstance(code, int):
+        return code
+    resp = getattr(exc, "response", None)
+    if resp is not None:
+        resp_code = getattr(resp, "status_code", None)
+        if isinstance(resp_code, int):
+            return resp_code
+    return None
+
+
 def default_generate(
     model: str,
     contract: str,
     content: str,
     client: genai.Client | None = None,
 ) -> str:
-    """Generate content via the pinned google-genai SDK with 503 retry and model fallback."""
+    """Generate content via the pinned google-genai SDK with retry and model fallback."""
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         raise GemmaError(redact("GEMINI_API_KEY is not set."))
@@ -137,13 +151,25 @@ def default_generate(
 
     config = types.GenerateContentConfig(**config_kwargs)
 
-    # Try primary model, then fallback model if 503/overloaded
-    models_to_try = [model, "gemma-4-26b-a4b-it"]
+    models_to_try = [model]
+    if model != "gemma-4-26b-a4b-it":
+        models_to_try.append("gemma-4-26b-a4b-it")
 
+    start_time = time.monotonic()
+    max_total_retry_time = 60.0
     last_exc = None
+    abort_all = False
+
     for curr_model in models_to_try:
-        # Retry loop for 503 / temporary server errors (up to 3 attempts per model)
+        if abort_all or (time.monotonic() - start_time) >= max_total_retry_time:
+            break
+        # Up to 2 retries on curr_model with short waits (1s, 2s)
+        # Attempt 0: initial attempt
+        # Attempt 1: retry 1 (wait 1s)
+        # Attempt 2: retry 2 (wait 2s)
         for attempt in range(3):
+            if (time.monotonic() - start_time) >= max_total_retry_time:
+                break
             try:
                 response = client.models.generate_content(
                     model=curr_model,
@@ -155,11 +181,60 @@ def default_generate(
             except Exception as exc:
                 last_exc = exc
                 err_str = str(exc)
-                # Check for 503 or overload indicators
-                if "503" in err_str or "Service Unavailable" in err_str or "overloaded" in err_str.lower():
-                    time.sleep(1.0 * (attempt + 1))
-                    continue
-                break  # Non-503 error, break inner loop to try fallback model
+                err_lower = err_str.lower()
+                code = _extract_status_code(exc)
+
+                # Check 401/403 (bad key): print friendly message and exit 1
+                if (
+                    code in (401, 403)
+                    or bool(re.search(r"\b(401|403)\b", err_str))
+                    or "unauthorized" in err_lower
+                    or "forbidden" in err_lower
+                    or "invalid api key" in err_lower
+                ):
+                    console = get_console()
+                    console.print(
+                        redact("Gemini rejected your API key. Check it and run rune again."),
+                        soft_wrap=True,
+                    )
+                    sys.exit(1)
+
+                # Check 400 (bad request): do not retry, do not fall back
+                if (
+                    code == 400
+                    or bool(re.search(r"\b400\b", err_str))
+                    or "bad request" in err_lower
+                    or "invalid_argument" in err_lower
+                ):
+                    abort_all = True
+                    break
+
+                # Check retryable: 500, 502, 503, 504, 429, overloaded
+                is_retryable = (
+                    code in (500, 502, 503, 504, 429)
+                    or bool(re.search(r"\b(500|502|503|504|429)\b", err_str))
+                    or "service unavailable" in err_lower
+                    or "gateway timeout" in err_lower
+                    or "bad gateway" in err_lower
+                    or "internal server error" in err_lower
+                    or "resource exhausted" in err_lower
+                    or "too many requests" in err_lower
+                    or "overloaded" in err_lower
+                )
+                if is_retryable:
+                    if attempt < 2:
+                        elapsed = time.monotonic() - start_time
+                        remaining = max_total_retry_time - elapsed
+                        if remaining <= 0:
+                            abort_all = True
+                            break
+                        update_working("Google's servers are busy, retrying...")
+                        wait_seconds = min(float(attempt + 1), remaining)
+                        time.sleep(wait_seconds)
+                        continue
+                    break
+                else:
+                    break
 
     raise GemmaError(redact(f"{theme.gemini_failed} All generation attempts failed: {last_exc}"))
 

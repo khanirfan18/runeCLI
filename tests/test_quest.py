@@ -392,3 +392,44 @@ def test_decline_all_prints_abandoned_and_creates_nothing(monkeypatch, sample_sp
 
     chosen = choose_quest_option([sample_spec])
     assert chosen is None
+
+
+def test_decline_all_via_prompt_choose_quest_returns_none(sample_spec, monkeypatch):
+    """When user selects 'Decline all' choice, prompt_choose_quest returns None."""
+    from unittest.mock import patch, MagicMock
+    from rune.prompts import prompt_choose_quest, ask_select
+
+    # Simulate questionary returning the index of 'Decline all'
+    with patch("rune.prompts._check_tty"), patch("questionary.select") as mock_sel:
+        # User selects choice 1 ("Decline all")
+        mock_sel.side_effect = lambda msg, choices, **kw: MagicMock(ask=lambda: choices[1].value)
+        result = prompt_choose_quest([sample_spec])
+        assert result is None
+
+        # choose_quest_option must also return None without raising AttributeError
+        chosen = choose_quest_option([sample_spec])
+        assert chosen is None
+
+
+def test_ask_select_preserves_none_and_boolean_values():
+    """ask_select returns None when choice value is None, and preserves False/True."""
+    from unittest.mock import patch, MagicMock
+    from rune.prompts import ask_select
+
+    choices = [("Accept", 123), ("Decline", None), ("FalseOption", False)]
+
+    def make_mock(idx):
+        return lambda *a, **kw: MagicMock(ask=lambda: (kw.get("choices") or a[1])[idx].value)
+
+    with patch("rune.prompts._check_tty"), patch("questionary.select") as mock_sel:
+        # Choice 0 -> 123
+        mock_sel.side_effect = make_mock(0)
+        assert ask_select("Pick", choices) == 123
+
+        # Choice 1 -> None (not 'Decline')
+        mock_sel.side_effect = make_mock(1)
+        assert ask_select("Pick", choices) is None
+
+        # Choice 2 -> False (not 'FalseOption')
+        mock_sel.side_effect = make_mock(2)
+        assert ask_select("Pick", choices) is False

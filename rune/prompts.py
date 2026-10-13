@@ -54,14 +54,21 @@ def ask_password(message: str) -> str | None:
 def ask_select(message: str, choices: Sequence[tuple[str, Any]]) -> Any | None:
     """Prompt to select from (label, value) choices. Return None on Ctrl-C / abort."""
     _check_tty()
-    q_choices = [Choice(title=label, value=val) for label, val in choices]
+    if not choices:
+        return None
+    q_choices = [Choice(title=label, value=i) for i, (label, _) in enumerate(choices)]
     try:
-        return questionary.select(
+        ans = questionary.select(
             message,
             choices=q_choices,
             qmark="ᚱ",
             style=PROMPT_STYLE,
         ).ask()
+        if ans is None:
+            return None
+        if isinstance(ans, int) and 0 <= ans < len(choices):
+            return choices[ans][1]
+        return ans
     except KeyboardInterrupt:
         return None
 
@@ -74,7 +81,10 @@ def prompt_choose_quest(quests: Sequence[Any]) -> Any | None:
         (f"Accept: {truncate(q.title, 60)}", q) for q in quests
     ]
     choices.append(("Decline all", None))
-    return ask_select(theme.choose_quest, choices)
+    chosen = ask_select(theme.choose_quest, choices)
+    if chosen == "Decline all" or chosen is None:
+        return None
+    return chosen
 
 
 def prompt_setup_action() -> str | None:

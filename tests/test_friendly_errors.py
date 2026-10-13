@@ -121,6 +121,13 @@ def invoke_flow_with_step_error(
     if error_step == "store":
         patches.append(patch("rune.flow.choose_quest_option", return_value=sample_gemma_output.quests[0]))
         patches.append(patch("rune.flow.accept_quest", side_effect=store_side_effect))
+    elif error_step == "decline":
+        # Let choose_quest_option run, mock prompt_choose_quest to simulate selecting 'Decline all' via ask_select
+        patches.append(patch("rune.prompts._check_tty"))
+        def mock_q_select(*args, **kwargs):
+            ch = kwargs.get("choices") or (args[1] if len(args) > 1 else [])
+            return MagicMock(ask=lambda: ch[1].value)
+        patches.append(patch("questionary.select", side_effect=mock_q_select))
     else:
         patches.append(patch("rune.flow.choose_quest_option", return_value=sample_gemma_output.quests[0]))
         patches.append(patch("rune.flow.accept_quest", return_value=MagicMock()))
@@ -344,3 +351,15 @@ with patch("rune.flow.sys", mock_sys), \\
     assert "The oracle is unreachable." in proc.stdout
     assert "Google's API had a problem. This is usually temporary, so please run rune again in a few minutes." in proc.stdout
     assert elapsed < 60.0
+
+
+def test_flow_decline_all_quests_exits_cleanly_without_attribute_error(sample_issue, sample_repo_meta, sample_gemma_output):
+    """When user chooses 'Decline all' on offered quests, flow exits cleanly without AttributeError."""
+    from rune.quest import choose_quest_option
+    res = invoke_flow_with_step_error("decline", None, sample_issue, sample_repo_meta, sample_gemma_output)
+
+    assert res.exit_code == 0
+    assert "Traceback" not in res.output
+    assert "AttributeError" not in res.output
+    assert "Something unexpected went wrong" not in res.output
+    assert "The ritual is abandoned." in res.output

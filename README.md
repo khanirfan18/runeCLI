@@ -44,7 +44,9 @@ pipx install runecli
 ---
 
 > [!NOTE]
-> **Beta Notice — Credential Security**: Your tokens stay on your machine. Rune stores your `GITHUB_TOKEN` and `GEMINI_API_KEY` in a local file at `~/.rune/config.json` (or under `$RUNE_HOME`) with owner-only permissions (`chmod 0600`). This is a local file on your filesystem, not the OS keychain. Environment variables, when set, always take precedence. Never commit or share this configuration file.
+> **Beta Notice — Credential Security**: Your tokens stay on your machine. Rune stores your `GITHUB_TOKEN` and `GEMINI_API_KEY` in a local file at `~/.rune/config.json` (or under `$RUNE_HOME`) with owner-only permissions (`chmod 0600` on Linux and macOS). This is a local file on your filesystem, not the OS keychain. Environment variables, when set, always take precedence. Never commit or share this configuration file.
+>
+> Tested on Linux. macOS and Windows are not yet tested.
 
 ---
 
@@ -75,18 +77,23 @@ Rune provides three focused commands:
 
 ### `rune`
 Starts the interactive quest cycle:
-1. Verifies credentials and detects an installed IDE (VS Code `code` or Cursor `cursor`).
-2. Opens the Quest Board to search open issues.
-3. Clones a bounded, read-only analysis cache and extracts evidence.
-4. Generates grounded quest framings with Gemma 4 (`gemma-4-31b-it`).
-5. Creates an isolated workspace and launches your IDE.
-6. Prints guided Git setup commands and verifies your branch before starting the timer.
+1. Loads or prompts for credentials (GitHub token and Gemini API key).
+2. Signs in to GitHub and validates authentication.
+3. Checks for an installed IDE (VS Code `code` or Cursor `cursor`).
+4. Checks for any active quest; if none, opens the Quest Board to search open issues.
+5. Clones a bounded, read-only analysis cache and extracts evidence.
+6. Generates grounded quest framings with Gemma 4 (`gemma-4-31b-it`).
+7. Creates an isolated workspace and launches your IDE.
+8. Prints guided Git setup commands and verifies your branch before starting the timer.
 
 ### `rune status`
 Displays the active quest's status, remaining time, acceptance criteria, matched pull request status, and finish instructions.
 
 ### `rune refresh`
 Checks GitHub for pull request activity matching your quest branch. When your PR is merged, transitions the quest to `COMPLETED` and awards RuneScape XP.
+
+### `rune --version` (or `rune -V`)
+Displays the installed version of RuneCLI and exits.
 
 ---
 
@@ -96,10 +103,10 @@ Checks GitHub for pull request activity matching your quest branch. When your PR
 - **Sage**: The GitHub username or organization whose repositories to search (e.g. `pallets`, `fastapi`). Leave blank to search across public repositories.
 - **Unassigned**: Choose `Yes` to find unclaimed issues (`is:unassigned`) or `No` to include assigned issues.
 - **Difficulty**:
-  - `EASY`: 60 minutes / 100 XP
-  - `NORMAL`: 180 minutes / 150 XP
-  - `HARD`: 360 minutes / 250 XP
-  - `EPIC`: 540 minutes / 400 XP
+  - `Novice`: 60 min / 100 XP
+  - `Intermediate`: 180 min / 150 XP
+  - `Experienced`: 360 min / 250 XP
+  - `Master`: 540 min / 400 XP
 
 ---
 

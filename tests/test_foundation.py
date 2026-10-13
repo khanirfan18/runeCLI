@@ -162,21 +162,23 @@ def test_typer_app_cli_runner(tmp_path, monkeypatch):
     command_names = [cmd.name for cmd in app.registered_commands]
     assert sorted(command_names) == ["refresh", "status"]
 
-    # Bare invocation exits 0 and prints banner and placeholder
+    # Bare invocation without TTY exits 1 and explains that an interactive terminal is required
     bare_result = runner.invoke(app, [])
-    assert bare_result.exit_code == 0
+    assert bare_result.exit_code == 1
     assert theme.PLAIN_BANNER in bare_result.output
-    assert "flow not wired yet" in bare_result.output
+    assert "rune needs an interactive terminal. Run it directly in your terminal." in bare_result.output
 
-    # Subcommand status exits 0
+    # Subcommand status runs real status view (No active quest)
     status_result = runner.invoke(app, ["status"])
     assert status_result.exit_code == 0
-    assert "not wired yet" in status_result.output
+    assert "not wired yet" not in status_result.output
+    assert "No active quest." in status_result.output
 
-    # Subcommand refresh exits 0
+    # Subcommand refresh runs real refresh view (No active quest)
     refresh_result = runner.invoke(app, ["refresh"])
     assert refresh_result.exit_code == 0
-    assert "not wired yet" in refresh_result.output
+    assert "not wired yet" not in refresh_result.output
+    assert "No active quest." in refresh_result.output
 
 
 def test_module_execution_supports_help():

@@ -37,6 +37,11 @@ python -m pytest -q
 
 All tests should pass before opening a pull request. Tests must remain fast, deterministic, and offline (using mocks/fakes rather than live network calls).
 
+Tests must never launch real external editors (`code`, `cursor`). An autouse fixture in `tests/conftest.py` intercepts process launches from `rune.editor`. Always ensure the test suite passes with warnings as errors:
+```bash
+python -m pytest -q -W error
+```
+
 ---
 
 ## 3. Branch Naming
@@ -56,7 +61,7 @@ Examples: `feat/add-version-flag`, `fix/gemma-reason-parsing`.
 
 Before submitting a Pull Request, please ensure:
 
-- [ ] All tests pass (`python -m pytest -q`).
+- [ ] All tests pass cleanly (`python -m pytest -q -W error`).
 - [ ] Any new logic includes corresponding unit tests in `tests/`.
 - [ ] No secrets, API keys, tokens, or `.env` files are committed.
 - [ ] Commits are clear, focused, and atomic.

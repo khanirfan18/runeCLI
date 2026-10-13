@@ -43,7 +43,7 @@ def run_gemini(user_input: str, e0: E0, evidence: list[Any]) -> GemmaOutput:
 
 
 def print_e0_summary(e0: E0, repo_meta: RepoMeta) -> None:
-    """Render the E0 summary box including the route, then print the placeholder."""
+    """Render the E0 summary box including the route."""
     console = get_console()
     summary_lines = [
         f"Repo:   {repo_meta.base_repo}",
@@ -57,7 +57,6 @@ def print_e0_summary(e0: E0, repo_meta: RepoMeta) -> None:
 
     summary_panel = box("\n".join(summary_lines), title=theme.quest_offered)
     console.print(summary_panel)
-    console.print(theme.analysis_not_wired)
 
 
 def run_flow(
@@ -65,11 +64,10 @@ def run_flow(
     reopen_confirm: Any = None,
 ) -> None:
     """Execute the core interactive Rune Quest Board flow."""
-    # When invoked without a TTY stdin in automated runners, preserve placeholder
     if client is None and not sys.stdin.isatty():
         console = get_console()
-        console.print("flow not wired yet")
-        return
+        console.print("rune needs an interactive terminal. Run it directly in your terminal.")
+        sys.exit(1)
 
     console = get_console()
     if client is None and not ensure_credentials():

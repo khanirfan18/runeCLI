@@ -49,10 +49,23 @@ ignore-vcs = true
 
 [tool.hatch.build.targets.sdist]
 include = [
+    "/README.md",
+    "/LICENSE",
+    "/CHANGELOG.md",
+    "/CONTRIBUTING.md",
+    "/pyproject.toml",
     "/rune",
+    "/tests",
 ]
 exclude = [
     "/.gitignore",
+    ".gitignore",
+    "/.agent",
+    "/.github",
+    "/dist",
+    ".pytest_cache",
+    "__pycache__",
+    ".coverage",
 ]
 
 [tool.hatch.build.targets.wheel]

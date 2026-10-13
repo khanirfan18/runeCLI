@@ -153,14 +153,8 @@ zero_results = ZERO_RESULTS
 REPO_ARCHIVED: Final[str] = "This repository is archived. Pick another quest."
 repo_archived = REPO_ARCHIVED
 
-ANALYSIS_NOT_WIRED: Final[str] = "analysis not wired yet"
-analysis_not_wired = ANALYSIS_NOT_WIRED
-
 MISSING_TOKEN: Final[str] = "GITHUB_TOKEN is not set."
 missing_token = MISSING_TOKEN
-
-SETUP_NOT_WIRED: Final[str] = "setup not wired yet"
-setup_not_wired = SETUP_NOT_WIRED
 
 ACTIVE_EXISTS: Final[str] = (
     "A quest is already active: {title} ({id}). Finish or abandon it first."

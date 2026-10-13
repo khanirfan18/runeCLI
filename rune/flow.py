@@ -65,11 +65,10 @@ def run_flow(
     reopen_confirm: Any = None,
 ) -> None:
     """Execute the core interactive Rune Quest Board flow."""
-    # When invoked without a TTY stdin in automated runners, preserve placeholder
     if client is None and not sys.stdin.isatty():
         console = get_console()
-        console.print("flow not wired yet")
-        return
+        console.print("rune needs an interactive terminal. Run it directly in your terminal.")
+        sys.exit(1)
 
     console = get_console()
     if client is None and not ensure_credentials():

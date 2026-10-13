@@ -35,20 +35,12 @@ def main(ctx: typer.Context) -> None:
 @app.command(name="status")
 def status() -> None:
     """Display current quest status."""
-    if "test_foundation" in os.environ.get("PYTEST_CURRENT_TEST", ""):
-        console = get_console()
-        console.print("not wired yet")
-        return
     render_status_view()
 
 
 @app.command(name="refresh")
 def refresh() -> None:
     """Refresh active quest progress."""
-    if "test_foundation" in os.environ.get("PYTEST_CURRENT_TEST", ""):
-        console = get_console()
-        console.print("not wired yet")
-        return
     render_refresh_view()
 
 

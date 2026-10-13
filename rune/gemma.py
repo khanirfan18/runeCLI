@@ -139,6 +139,7 @@ def default_generate(
 
     config_kwargs: dict[str, Any] = {
         "temperature": 0.0,
+        "automatic_function_calling": types.AutomaticFunctionCallingConfig(disable=True),
     }
     if USE_JSON_MODE:
         config_kwargs["response_mime_type"] = "application/json"

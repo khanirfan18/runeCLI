@@ -175,15 +175,34 @@ def box(body: Any, title: str | None = None, tone: str = "gold") -> Panel:
     )
 
 
+_active_status: Any = None
+
+
+def update_working(message: str) -> None:
+    """Update active spinner text if a spinner is currently running."""
+    global _active_status
+    if _active_status is not None:
+        try:
+            _active_status.update(message)
+        except Exception:
+            pass
+
+
 @contextmanager
-def working(message: str) -> Generator[None, None, None]:
+def working(message: str) -> Generator[Any, None, None]:
     """Context manager displaying a single rich spinner ONLY if stdout is a TTY and NO_COLOR is unset."""
+    global _active_status
     if sys.stdout.isatty() and "NO_COLOR" not in os.environ:
         console = get_console()
-        with console.status(message):
-            yield
+        with console.status(message) as status:
+            prev = _active_status
+            _active_status = status
+            try:
+                yield status
+            finally:
+                _active_status = prev
     else:
-        yield
+        yield None
 
 
 def compute_xp_progress(level: int, xp: int) -> tuple[int, int, int]:

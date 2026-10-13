@@ -88,6 +88,9 @@ Displays the active quest's status, remaining time, acceptance criteria, matched
 ### `rune refresh`
 Checks GitHub for pull request activity matching your quest branch. When your PR is merged, transitions the quest to `COMPLETED` and awards RuneScape XP.
 
+### `rune --version` (or `rune -V`)
+Displays the installed version of RuneCLI and exits.
+
 ---
 
 ## Quest Board Filters

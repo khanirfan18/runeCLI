@@ -2,22 +2,66 @@
 
 import importlib.metadata
 import os
+import sys
+from contextlib import contextmanager
 import typer
 
 from rune import theme
 from rune.credentials import load_saved_credentials
 from rune.flow import run_flow
+from rune.gemma import GemmaError
+from rune.github import GitHubAuthError, GitHubNotFoundError, GitHubRateLimitError
 from rune.lifecycle import render_refresh_view, render_status_view
 from rune.recovery import recover_stale_setups
 from rune.runtime import init_run
-from rune.store import ensure_dirs
-from rune.ui import get_console
+from rune.store import StoreError, ensure_dirs
+from rune.ui import get_console, redact
 
 app = typer.Typer(
     name="rune",
     help="Turn a real GitHub issue into a grounded coding quest.",
     add_completion=False,
+    pretty_exceptions_enable=False,
+    pretty_exceptions_show_locals=False,
 )
+
+
+@contextmanager
+def handle_cli_errors():
+    """Wrap CLI execution in a friendly error handler for known and unexpected errors."""
+    try:
+        yield
+    except KeyboardInterrupt:
+        console = get_console()
+        console.print("Quest board closed.")
+        sys.exit(130)
+    except (
+        GemmaError,
+        GitHubAuthError,
+        GitHubRateLimitError,
+        GitHubNotFoundError,
+        StoreError,
+    ) as exc:
+        console = get_console()
+        console.print(redact(str(exc)), soft_wrap=True)
+        if isinstance(exc, GemmaError):
+            console.print(
+                "Google's API had a problem. This is usually temporary, so please run rune again in a few minutes.",
+                soft_wrap=True,
+            )
+        sys.exit(1)
+    except (typer.Exit, SystemExit):
+        raise
+    except Exception as exc:
+        if os.environ.get("RUNE_DEBUG") == "1":
+            raise
+        console = get_console()
+        console.print(
+            "Something unexpected went wrong. Please open an issue at https://github.com/khanirfan18/runeCLI/issues",
+            soft_wrap=True,
+        )
+        console.print(redact(f"{type(exc).__name__}: {exc}"), soft_wrap=True)
+        sys.exit(1)
 
 
 def version_callback(value: bool) -> None:
@@ -50,19 +94,22 @@ def main(
     if ctx.invoked_subcommand is None:
         console = get_console()
         console.print(theme.BANNER)
-        run_flow()
+        with handle_cli_errors():
+            run_flow()
 
 
 @app.command(name="status")
 def status() -> None:
     """Display current quest status."""
-    render_status_view()
+    with handle_cli_errors():
+        render_status_view()
 
 
 @app.command(name="refresh")
 def refresh() -> None:
     """Refresh active quest progress."""
-    render_refresh_view()
+    with handle_cli_errors():
+        render_refresh_view()
 
 
 if __name__ == "__main__":

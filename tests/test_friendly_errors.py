@@ -279,3 +279,68 @@ def test_secrets_never_leak_in_exception_output(sample_issue, sample_repo_meta, 
     assert fake_gemini not in res.output
     assert fake_github not in res.output
     assert "***" in res.output
+
+
+# ---------------------------------------------------------------------------
+# 5. Subprocess verification with fake client raising 500
+# ---------------------------------------------------------------------------
+
+
+def test_subprocess_500_gemma_error():
+    """Run CLI as a subprocess with a fake client raising 500 to confirm friendly exit and time."""
+    import subprocess
+    import time
+
+    script = """
+import sys
+import time
+from unittest.mock import MagicMock, patch
+import os
+
+os.environ["GEMINI_API_KEY"] = "fake-key"
+os.environ["GITHUB_TOKEN"] = "fake-token"
+
+fake_client = MagicMock()
+fake_client.models.generate_content.side_effect = Exception("500 INTERNAL: temporary server error")
+
+from rune.models import IssueRef, RepoMeta
+
+sample_issue = IssueRef(number=1, title="T", body="B", url="U", base_repo="o/r")
+mock_repo = RepoMeta(base_repo="o/r", base_repo_url="https://github.com/o/r", default_branch="main", archived=False, push=True, route="direct")
+
+mock_sys = MagicMock()
+mock_sys.stdin.isatty.return_value = True
+mock_sys.exit = sys.exit
+
+with patch("rune.flow.sys", mock_sys), \\
+     patch("time.sleep", lambda s: None), \\
+     patch("rune.gemma.genai.Client", return_value=fake_client), \\
+     patch("rune.flow.ensure_credentials", return_value=True), \\
+     patch("rune.flow.detect_editors", return_value=["cursor"]), \\
+     patch("rune.flow.process_active_quest", return_value=MagicMock(quest=None)), \\
+     patch("rune.flow.ask_text", side_effect=["fix bug", ""]), \\
+     patch("rune.flow.ask_select", side_effect=[True, MagicMock(), sample_issue]), \\
+     patch("rune.flow.select_single_issue", return_value=sample_issue), \\
+     patch("rune.flow.run_analysis", return_value=[]), \\
+     patch("rune.flow.GitHubClient") as mock_gh:
+    mock_gh.return_value.get_authenticated_login.return_value = "player"
+    mock_gh.return_value.get_repo.return_value = mock_repo
+    mock_gh.return_value.search_issues.return_value = [sample_issue]
+
+    from rune.cli import app
+    try:
+        app([])
+    except SystemExit as e:
+        sys.exit(e.code)
+"""
+
+    t0 = time.time()
+    proc = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
+    elapsed = time.time() - t0
+
+    assert proc.returncode == 1
+    assert "Traceback" not in proc.stdout
+    assert "Traceback" not in proc.stderr
+    assert "The oracle is unreachable." in proc.stdout
+    assert "Google's API had a problem. This is usually temporary, so please run rune again in a few minutes." in proc.stdout
+    assert elapsed < 60.0

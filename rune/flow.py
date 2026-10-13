@@ -19,7 +19,7 @@ from rune.github import (
 from rune.analysis import clone_repo, extract_evidence
 from rune.credentials import ensure_credentials
 from rune.gemma import generate_quests
-from rune.models import E0, GemmaOutput, IssueRef, RepoMeta
+from rune.models import E0, GemmaOutput, IssueRef, QuestFraming, RepoMeta
 from rune.prompts import ask_select, ask_text
 from rune.quest import accept_quest, choose_quest_option, show_offered_quests
 from rune.ui import box, get_console, truncate, working
@@ -191,7 +191,7 @@ def run_flow(
     if gemma_output and gemma_output.quests:
         show_offered_quests(gemma_output.quests, difficulty, evidence)
         chosen_quest = choose_quest_option(gemma_output.quests)
-        if chosen_quest is None:
+        if chosen_quest is None or not isinstance(chosen_quest, QuestFraming):
             return
 
         # 15. Accept quest and write durable record

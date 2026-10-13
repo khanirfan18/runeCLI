@@ -112,7 +112,7 @@ def show_offered_quests(
 def choose_quest_option(quests: list[QuestFraming]) -> QuestFraming | None:
     """Prompt the user to accept a quest or decline all."""
     chosen = prompt_choose_quest(quests)
-    if chosen is None:
+    if chosen is None or not isinstance(chosen, QuestFraming):
         get_console().print(theme.abandoned)
         return None
     return chosen

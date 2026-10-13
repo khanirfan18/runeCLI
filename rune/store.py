@@ -57,6 +57,8 @@ def ensure_dirs() -> None:
 def read_credentials() -> dict[str, str]:
     """Return locally saved API credentials without exposing them to callers."""
     data = read_json(config_path()) or {}
+    if not isinstance(data, dict):
+        raise StoreError("Invalid Rune configuration.")
     credentials = data.get("credentials", {})
     if not isinstance(credentials, dict):
         raise StoreError("Invalid credentials configuration.")
@@ -70,9 +72,12 @@ def read_credentials() -> dict[str, str]:
 def save_credentials(github_token: str, gemini_api_key: str) -> None:
     """Save API credentials in the local Rune config while preserving other settings."""
     ensure_dirs()
-    data = read_json(config_path()) or {"version": 1}
-    if not isinstance(data, dict):
-        raise StoreError("Invalid Rune configuration.")
+    try:
+        data = read_json(config_path()) or {"version": 1}
+        if not isinstance(data, dict):
+            data = {"version": 1}
+    except StoreError:
+        data = {"version": 1}
     data["credentials"] = {
         "github_token": github_token,
         "gemini_api_key": gemini_api_key,

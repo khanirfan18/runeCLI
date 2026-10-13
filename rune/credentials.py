@@ -1,6 +1,7 @@
 """First-run credential setup and local credential loading."""
 
 import os
+import sys
 
 from rune import store, theme
 from rune.prompts import ask_password
@@ -9,7 +10,11 @@ from rune.ui import get_console
 
 def load_saved_credentials() -> None:
     """Load saved credentials into the process environment without printing them."""
-    credentials = store.read_credentials()
+    try:
+        credentials = store.read_credentials()
+    except store.StoreError:
+        sys.stderr.write("Your config file could not be read, so Rune will ask for your keys again.\n")
+        credentials = {}
     if credentials.get("github_token") and not os.environ.get("GITHUB_TOKEN"):
         os.environ["GITHUB_TOKEN"] = credentials["github_token"]
     if credentials.get("gemini_api_key") and not os.environ.get("GEMINI_API_KEY"):
